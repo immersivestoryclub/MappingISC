@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ISC Screening Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gloock&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Plan: quiet cool-neutral surface, maroon ink accent. Place = three validated hues + grey. Layout: filters, headline numbers, timeline map, pattern bars, two linked tables. */
+:root{
+  color-scheme:light;
+  --bg:#f7f3ec; --surface:#fffaf4; --ink:#2a1420; --ink2:#5e4a55; --muted:#8e7f86; --line:#e6dccf; --accent:#48102d; --accent-soft:#f6e3d8; --coral:#f08a5d;
+  --s1:#2a78d6; --s2:#e8612c; --s3:#1baf7a; --s4:#9b979e;
+  --r0:#f3e3ea; --r1:#e3b6c8; --r2:#c77a9c; --r3:#9a3d6a; --r4:#5a1236;
+  --display:'Gloock',Georgia,serif; --body:'Work Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#1a0a13; --surface:#241019; --ink:#f7f3ec; --ink2:#d4c3c9; --muted:#9a8890; --line:#3a2330; --accent:#f08a5d; --accent-soft:#3a1d2a; --coral:#f08a5d;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#77737a;
+    --r0:#33232b; --r1:#5b3346; --r2:#92506f; --r3:#c9799e; --r4:#f4b5d0;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#1a0a13; --surface:#241019; --ink:#f7f3ec; --ink2:#d4c3c9; --muted:#9a8890; --line:#3a2330; --accent:#f08a5d; --accent-soft:#3a1d2a; --coral:#f08a5d;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#77737a;
+  --r0:#33232b; --r1:#5b3346; --r2:#92506f; --r3:#c9799e; --r4:#f4b5d0;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 64px;display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,4.2vw,42px);line-height:1.1;margin:0;color:var(--accent);text-wrap:balance}
+h2{font-family:var(--display);font-weight:400;font-size:19px;margin:0;text-wrap:balance}
+.sub{color:var(--ink2);margin:6px 0 0;max-width:68ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.head-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.hint{color:var(--muted);font-size:13px;margin:0}
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.chip .sw{width:10px;height:10px;border-radius:50%}
+select{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:220px}
+.btn{font:inherit;font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;text-decoration:underline;padding:6px 4px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:13px;border:none;background:var(--surface);color:var(--ink2);padding:6px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.seg button+button{border-left:1px solid var(--line)}
+.ctl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2)}
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.tile b{display:block;font-family:var(--display);font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+.tile span{color:var(--ink2);font-size:13px}
+/* timeline */
+.tl{--lab:212px;display:grid;grid-template-columns:var(--lab,212px) minmax(0,1fr);position:relative}
+.tl-labels{position:relative}
+.tl-label{position:absolute;left:0;right:8px;display:flex;align-items:center;gap:6px;font-size:13px;line-height:1.2}
+.tl-label button{all:unset;cursor:pointer;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.tl-label button:hover{text-decoration:underline}
+.tl-label .n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.tl-label a{color:var(--accent);text-decoration:none;font-size:13px}
+.tl-scroll{overflow-x:auto}
+svg text{fill:var(--ink2);font-family:var(--body);font-size:11px}
+.grid-line{stroke:var(--line);stroke-width:1}
+.rowband{fill:var(--accent-soft);opacity:.35}
+.dot{stroke:var(--surface);stroke-width:1.5;cursor:pointer;opacity:.92}
+.dot:hover{opacity:1;stroke:var(--ink)}
+.dot.sel{stroke:var(--ink);stroke-width:2.5;opacity:1}
+.mode-place .g-nh{fill:var(--s1)} .mode-place .g-to{fill:var(--s2)} .mode-place .g-sf{fill:var(--s3)} .mode-place .g-el{fill:var(--s4)}
+.mode-rate .b0{fill:var(--r0)} .mode-rate .b1{fill:var(--r1)} .mode-rate .b2{fill:var(--r2)} .mode-rate .b3{fill:var(--r3)} .mode-rate .b4{fill:var(--r4)}
+.mode-rate .bna{fill:var(--surface);stroke:var(--muted);stroke-dasharray:2 2}
+.mode-rate .bn0{fill:var(--r0);stroke:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink2);align-items:center}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.legend i.hollow{background:var(--surface);border:1px dashed var(--muted)}
+.tip{position:fixed;z-index:20;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:10px 12px;font-size:12.5px;max-width:260px;display:none}
+.tip b{display:block;font-size:13.5px;margin-bottom:2px}
+.tip .mut{color:var(--ink2)}
+/* two-col: detail */
+.two{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media(min-width:900px){.two.with-detail{grid-template-columns:minmax(0,1fr) 320px}}
+.detail h3{font-family:var(--display);font-size:17px;margin:0 0 4px}
+.detail dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0;font-size:13px}
+.detail dt{color:var(--muted)} .detail dd{margin:0;font-variant-numeric:tabular-nums}
+.filmcard{border-top:1px solid var(--line);padding-top:10px;margin-top:10px;font-size:13px}
+.filmcard b{font-size:14px}
+.filmcard a{color:var(--accent);font-weight:600}
+.empty{color:var(--muted);font-size:13px}
+/* patterns */
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.ins{border-left:3px solid var(--accent);padding:2px 0 2px 12px;font-size:14px}
+.ins small{display:block;color:var(--muted);margin-top:2px}
+.bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:6px}
+.bar-group h3{font-size:14px;margin:0 0 8px}
+.barrow{display:grid;grid-template-columns:minmax(90px,130px) minmax(0,1fr) 84px;gap:8px;align-items:center;font-size:13px;padding:3px 0;border:none;background:none;width:100%;text-align:left;font-family:inherit;color:inherit;cursor:pointer;border-radius:6px}
+.barrow:hover{background:var(--accent-soft)}
+.barrow[aria-pressed="true"]{background:var(--accent-soft)}
+.barrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track{height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+.fill{height:100%;background:var(--accent);border-radius:5px}
+.pct{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.pct small{color:var(--muted)}
+/* tables */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--ink2);white-space:nowrap}
+th button{all:unset;cursor:pointer}
+th button:hover{color:var(--ink)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--accent-soft)}
+tbody tr.on{background:var(--accent-soft)}
+td a{color:var(--accent);font-weight:600;text-decoration:none}
+td a:hover{text-decoration:underline}
+.pill{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px}
+.note{color:var(--muted);font-size:12.5px;max-width:80ch}
+@media(max-width:560px){.tl{--lab:136px}.wrap{padding:20px 16px 48px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mapping Immersive Story Club</h1>
+    <p class="sub" id="subline"></p>
+  </header>
+
+  <section class="card" aria-label="Filters">
+    <div class="filters">
+      <span class="ctl">Place</span>
+      <div id="placeChips" class="filters" role="group" aria-label="Place"></div>
+      <label class="ctl" for="fAud">Audience <select id="fAud"></select></label>
+      <label class="ctl" for="fFilm">Film <select id="fFilm"></select></label>
+      <label class="ctl" for="fVenue">Venue <select id="fVenue"></select></label>
+      <button class="btn" id="reset" type="button">Clear filters</button>
+    </div>
+  </section>
+
+  <section class="tiles" id="tiles" aria-label="Totals for the current filters"></section>
+
+  <section class="card" aria-labelledby="tlh">
+    <div class="head-row">
+      <div>
+        <h2 id="tlh">Every screening on one map</h2>
+        <p class="hint">Each dot is one gathering. Bigger dots are bigger rooms. Hover for detail, click to pin it.</p>
+      </div>
+      <div class="filters">
+        <span class="ctl">Rows
+          <span class="seg" id="rowSeg" role="group" aria-label="Group rows by">
+            <button type="button" data-v="film" aria-pressed="true">Film</button>
+            <button type="button" data-v="venue" aria-pressed="false">Venue</button>
+            <button type="button" data-v="place" aria-pressed="false">Place</button>
+          </span>
+        </span>
+        <span class="ctl">Color
+          <span class="seg" id="colSeg" role="group" aria-label="Color dots by">
+            <button type="button" data-v="place" aria-pressed="true">Place</button>
+            <button type="button" data-v="rate" aria-pressed="false">Return rate</button>
+          </span>
+        </span>
+      </div>
+    </div>
+    <div class="two with-detail" id="mapRow">
+      <div>
+        <div class="legend" id="legend" style="margin-bottom:10px"></div>
+        <div class="tl" id="tl">
+          <div class="tl-labels" id="tlLabels"></div>
+          <div class="tl-scroll" id="tlScroll"><svg id="tlSvg" role="img" aria-label="Timeline of screenings"></svg></div>
+        </div>
+      </div>
+      <aside class="detail card" id="detail" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="ph">
+    <div class="head-row">
+      <div>
+        <h2 id="ph">What stands out</h2>
+        <p class="hint">Return rate is returning people divided by people logged, for gatherings where a return count was recorded. Click a row to filter.</p>
+      </div>
+    </div>
+    <div class="insights" id="insights"></div>
+    <div class="bars" id="bars"></div>
+    <p class="note" style="margin-top:14px">These are patterns in a pilot, not causes. Later gatherings had more chances to see familiar faces, and several rooms are small, so one extra returning person moves a rate a lot.</p>
+  </section>
+
+  <section class="card" aria-labelledby="fh">
+    <div class="head-row">
+      <div><h2 id="fh">Films shown</h2><p class="hint">Click a title to open its page. Click anywhere else on a row to filter the map to that film.</p></div>
+    </div>
+    <div class="tbl"><table id="filmTbl"></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="vh">
+    <div class="head-row">
+      <div><h2 id="vh">Venues</h2><p class="hint">Click a row to filter the map to that venue.</p></div>
+    </div>
+    <div class="tbl"><table id="venTbl"></table></div>
+  </section>
+
+  <p class="note" id="foot"></p>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+const DATA = {"events":[{"n":"1","date":"2025-07-09","end":null,"venue":"Living room","place":"Providence","region":"Elsewhere","audience":"Invited","films":["Notes on Blindness"],"prog":"Notes on Blindness - 7 min","participants":5,"returning":null,"kind":"film","exhibit":false},{"n":"2","date":"2025-08-01","end":null,"venue":"Living room","place":"Boston","region":"Elsewhere","audience":"Invited","films":["Accused #2 (Walter Sisulu)"],"prog":"Accused #2 -","participants":7,"returning":null,"kind":"film","exhibit":false},{"n":"3","date":"2025-08-07","end":null,"venue":"Somerville Community Media","place":"Boston","region":"Elsewhere","audience":"Invited","films":["Flow"],"prog":"Flow - 15 min","participants":14,"returning":null,"kind":"film","exhibit":false},{"n":"4","date":"2025-08-09","end":null,"venue":"The Foundry","place":"Boston","region":"Elsewhere","audience":"Invited","films":["Blind Vaysha"],"prog":"Blind Vaysha - 12 min","participants":13,"returning":null,"kind":"film","exhibit":false},{"n":"5","date":"2025-11-09","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Public","films":["Flow"],"prog":"Flow - 15 min","participants":22,"returning":1,"kind":"film","exhibit":false},{"n":"6","date":"2025-11-22","end":null,"venue":"Ely Center","place":"New Haven","region":"New Haven CT","audience":"Community","films":["Insider-Outsider"],"prog":"Insider Outsider","participants":17,"returning":2,"kind":"film","exhibit":false},{"n":"7","date":"2025-11-16","end":"2025-12-16","venue":"Ely Center","place":"New Haven","region":"New Haven CT","audience":"Exhibition","films":["Insider-Outsider"],"prog":"Insider Outsider","participants":96,"returning":3,"kind":"film","exhibit":true},{"n":"8","date":"2026-01-11","end":null,"venue":"Peabody Museum Atrium","place":"New Haven","region":"New Haven CT","audience":"Public","films":["Namoo"],"prog":"Namoo - 11 min","participants":87,"returning":7,"kind":"film","exhibit":false},{"n":"9","date":"2026-01-24","end":null,"venue":"Never Ending Books","place":"New Haven","region":"New Haven CT","audience":"Public","films":["Child of Empire"],"prog":"Child of Empire - 17 min","participants":13,"returning":2,"kind":"film","exhibit":false},{"n":"10","date":"2026-01-31","end":null,"venue":"Spruce Cafe","place":"New Haven","region":"New Haven CT","audience":"Public","films":["All I Know About Teacher Li"],"prog":"All I Know about Teacher Li","participants":9,"returning":1,"kind":"film","exhibit":false},{"n":"11","date":"2026-02-01","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Public","films":["All I Know About Teacher Li"],"prog":"All I Know about Teacher Li","participants":5,"returning":1,"kind":"film","exhibit":false},{"n":"12","date":"2026-02-07","end":null,"venue":"Threeiota","place":"New Haven","region":"New Haven CT","audience":"Exhibition","films":["From the Main Square"],"prog":"From the Main Square","participants":36,"returning":2,"kind":"film","exhibit":false},{"n":"13","date":"2026-02-08","end":null,"venue":"Never Ending Books","place":"New Haven","region":"New Haven CT","audience":"Public","films":["Notes on Blindness"],"prog":"Notes on Blindness","participants":7,"returning":1,"kind":"film","exhibit":false},{"n":"14","date":"2026-02-09","end":null,"venue":"New Haven Public Library","place":"New Haven","region":"New Haven CT","audience":"Youth & students","films":["Notes on Blindness"],"prog":"Notes on Blindness","participants":16,"returning":null,"kind":"film","exhibit":false},{"n":"15","date":"2026-02-13","end":null,"venue":"New Haven Public Library","place":"New Haven","region":"New Haven CT","audience":"Youth & students","films":["Insider-Outsider"],"prog":"Insider-Outsider","participants":8,"returning":1,"kind":"film","exhibit":false},{"n":"16","date":"2026-02-15","end":null,"venue":"Never Ending Books","place":"New Haven","region":"New Haven CT","audience":"Public","films":["Oto's Planet"],"prog":"Oto's Planet","participants":6,"returning":1,"kind":"film","exhibit":false},{"n":"17","date":"2026-02-22","end":null,"venue":"Spruce Cafe","place":"New Haven","region":"New Haven CT","audience":"Public","films":["Oto's Planet"],"prog":"Oto's Planet","participants":5,"returning":1,"kind":"film","exhibit":false},{"n":"18","date":"2026-02-26","end":null,"venue":"ZeroSpace","place":"Brooklyn","region":"Elsewhere","audience":"Industry & tech","films":["Flow"],"prog":"Flow - 15 min","participants":29,"returning":null,"kind":"film","exhibit":false},{"n":"19","date":"2026-03-01","end":null,"venue":"Never Ending Books","place":"New Haven","region":"New Haven CT","audience":"Public","films":["Oto's Planet"],"prog":"Kteer Tayeb / Oto's Planet","participants":3,"returning":1,"kind":"film","exhibit":false},{"n":"20","date":"2026-03-05","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Public","films":["Blind Vaysha"],"prog":"Blind Vaysha","participants":8,"returning":2,"kind":"film","exhibit":false},{"n":"21","date":"2026-03-07","end":null,"venue":"Spruce Cafe","place":"New Haven","region":"New Haven CT","audience":"Public","films":["We Live Here"],"prog":"We Live Here","participants":2,"returning":0,"kind":"film","exhibit":false},{"n":"22","date":"2026-04-18","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Public","films":["Tales of Soda Island"],"prog":"Tales of Soda Island","participants":6,"returning":3,"kind":"film","exhibit":false},{"n":"23","date":"2026-05-06","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Invited","films":["All I Know About Teacher Li"],"prog":"All I Know about Teacher Li","participants":9,"returning":null,"kind":"film","exhibit":false},{"n":"24","date":"2026-05-16","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Public","films":["Less Than 5 Grams of Saffron"],"prog":"Less Than 5 Grams for Saffron","participants":18,"returning":5,"kind":"film","exhibit":false},{"n":"25","date":"2026-05-17","end":null,"venue":"Never Ending Books","place":"New Haven","region":"New Haven CT","audience":"Community","films":["Geogroove"],"prog":"Geogroove","participants":6,"returning":1,"kind":"film","exhibit":false},{"n":"26","date":"2026-05-21","end":null,"venue":"Ely Center","place":"New Haven","region":"New Haven CT","audience":"Community","films":["Flow"],"prog":"Flow - 15 min","participants":22,"returning":0,"kind":"film","exhibit":false},{"n":"27","date":"2026-05-25","end":null,"venue":"Tiat","place":"Downtown - SF","region":"San Francisco","audience":"Public","films":["Namoo"],"prog":"Namoo - 11 min","participants":24,"returning":0,"kind":"film","exhibit":false},{"n":"28","date":"2026-05-31","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["The Key"],"prog":"The Key","participants":6,"returning":1,"kind":"film","exhibit":false},{"n":"29","date":"2026-06-07","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["The Art of Change"],"prog":"Art of Change","participants":13,"returning":2,"kind":"film","exhibit":false},{"n":"30","date":"2026-06-18","end":null,"venue":"Dog Patch Hub","place":"Dog Patch - SF","region":"San Francisco","audience":"Public","films":["Child of Empire"],"prog":"Child of Empire - 17 min","participants":4,"returning":0,"kind":"film","exhibit":false},{"n":"31","date":"2026-06-20","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Public","films":["The Key"],"prog":"The Key","participants":5,"returning":3,"kind":"film","exhibit":false},{"n":"32","date":"2026-06-25","end":null,"venue":"Dog Patch Hub","place":"Dog Patch - SF","region":"San Francisco","audience":"Public","films":["Oto's Planet"],"prog":"Oto's Planet","participants":2,"returning":1,"kind":"film","exhibit":false},{"n":"33","date":"2026-07-02","end":null,"venue":"Dog Patch Hub","place":"Dog Patch - SF","region":"San Francisco","audience":"Public","films":["Namoo","Less Than 5 Grams of Saffron","Cycle"],"prog":"Saffron, Cycle, Namoo","participants":1,"returning":0,"kind":"film","exhibit":false},{"n":"34","date":"2026-07-09","end":null,"venue":"Dog Patch Hub","place":"Dog Patch - SF","region":"San Francisco","audience":"Public","films":["Goliath: Playing with Reality"],"prog":"Goliath","participants":5,"returning":1,"kind":"film","exhibit":false},{"n":"35","date":"2026-07-12","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Cycle"],"prog":"Cycle","participants":6,"returning":3,"kind":"film","exhibit":false},{"n":"36","date":"2026-07-17","end":null,"venue":"The Ruby","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Less Than 5 Grams of Saffron"],"prog":"Less Than 5 Grams for Saffron","participants":9,"returning":null,"kind":"film","exhibit":false},{"n":"37","date":"2026-07-18","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Community","films":["Gravity Sketch"],"prog":"Gravity Sketch","participants":6,"returning":3,"kind":"film","exhibit":false},{"n":"38","date":"2026-07-21","end":null,"venue":"Gray Area","place":"","region":"San Francisco","audience":"Community","films":["Other programs"],"prog":"Show & Tell","participants":18,"returning":4,"kind":"other","exhibit":false},{"n":"39","date":"2026-07-23","end":null,"venue":"Dog Patch Hub","place":"","region":"San Francisco","audience":"Festival & fair","films":["Diatribes"],"prog":"Diatribes","participants":5,"returning":0,"kind":"film","exhibit":false},{"n":"40","date":"2026-07-24","end":null,"venue":"The Ruby","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Cloud Breath"],"prog":"Cloud Breath --> Victoria Scott speaks","participants":6,"returning":0,"kind":"film","exhibit":false},{"n":"41","date":"2026-07-25","end":null,"venue":"Dog Patch Hub","place":"","region":"San Francisco","audience":"Festival & fair","films":["Diatribes"],"prog":"Diatribes","participants":13,"returning":0,"kind":"film","exhibit":false},{"n":"42","date":"2026-08-02","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Goliath: Playing with Reality"],"prog":"Goliath","participants":14,"returning":4,"kind":"film","exhibit":false},{"n":"43","date":"2026-08-15","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Community","films":["Gravity Sketch"],"prog":"Gravity Sketch","participants":8,"returning":1,"kind":"film","exhibit":false},{"n":"44","date":"2026-08-16","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["We Live Here"],"prog":"We Live Here","participants":16,"returning":7,"kind":"film","exhibit":false},{"n":"45","date":"2026-08-21","end":null,"venue":"The Ruby","place":"","region":"San Francisco","audience":"Community","films":["Child of Empire"],"prog":"Child of Empire - 17 min","participants":15,"returning":null,"kind":"film","exhibit":false},{"n":"46","date":"2026-08-25","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Other programs"],"prog":"XR Make & Tell","participants":14,"returning":4,"kind":"other","exhibit":false},{"n":"47","date":"2026-08-22","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["FREE"],"prog":"FREE - Nancy Baker Cahill","participants":15,"returning":3,"kind":"film","exhibit":false},{"n":"48","date":"2026-09-11","end":null,"venue":"North Wales (industry)","place":"Wales, UK","region":"Elsewhere","audience":"Industry & tech","films":["Other programs"],"prog":"Immersive UK catalog selection","participants":22,"returning":null,"kind":"other","exhibit":false},{"n":"49","date":"2026-09-19","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Community","films":["Gravity Sketch"],"prog":"Gravity Sketch","participants":6,"returning":5,"kind":"film","exhibit":false},{"n":"50","date":"2026-10-03","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Community","films":["We The People"],"prog":"We The People","participants":12,"returning":7,"kind":"film","exhibit":false},{"n":"51","date":"2026-10-03","end":null,"venue":"New Museum","place":"NYC","region":"Elsewhere","audience":"Community","films":["All I Know About Teacher Li"],"prog":"All I Know about Teacher Li","participants":12,"returning":null,"kind":"film","exhibit":false},{"n":"52","date":"2026-10-04","end":null,"venue":"Gladys Library","place":"Fulton County Alabama","region":"Elsewhere","audience":"Public","films":["All I Know About Teacher Li"],"prog":"All I Know about Teacher Li","participants":7,"returning":null,"kind":"film","exhibit":false},{"n":"53","date":"2026-10-04","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Other programs"],"prog":"Show & Tell","participants":11,"returning":5,"kind":"other","exhibit":false},{"n":"54","date":"2026-10-18","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Empathy Creatures"],"prog":"Empathy Creatures","participants":15,"returning":4,"kind":"film","exhibit":false},{"n":"55","date":"2026-10-22","end":null,"venue":"BAVC","place":"The Mission - SF","region":"San Francisco","audience":"Youth & students","films":["Goliath: Playing with Reality"],"prog":"Goliath: Playing with Reality","participants":15,"returning":null,"kind":"film","exhibit":false},{"n":"56","date":"2026-11-01","end":null,"venue":"Community Well","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Necuhtli"],"prog":"Necuhtli","participants":5,"returning":null,"kind":"film","exhibit":false},{"n":"57","date":"2026-11-01","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Necuhtli"],"prog":"Necuhtli","participants":15,"returning":5,"kind":"film","exhibit":false},{"n":"58","date":"2026-11-02","end":null,"venue":"Potrero Park","place":"The Mission - SF","region":"San Francisco","audience":"Festival & fair","films":["Necuhtli"],"prog":"Necuhtli","participants":26,"returning":null,"kind":"film","exhibit":false},{"n":"59","date":"2026-11-13","end":null,"venue":"Stanford","place":"Palo Alto","region":"San Francisco","audience":"Industry & tech","films":["Empathy Creatures"],"prog":"Empathy Creatures","participants":20,"returning":null,"kind":"film","exhibit":false},{"n":"60","date":"2026-11-15","end":null,"venue":"Gray Area","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Diatribes"],"prog":"Diatribes","participants":18,"returning":null,"kind":"film","exhibit":false},{"n":"61","date":"2026-11-20","end":null,"venue":"The Ruby","place":"The Mission - SF","region":"San Francisco","audience":"Community","films":["Out of Nowhere"],"prog":"Out of Nowhere","participants":6,"returning":null,"kind":"film","exhibit":false},{"n":"61","date":"2026-11-20","end":null,"venue":"The Ruby","place":"The Mission - SF","region":"San Francisco","audience":"Festival & fair","films":["Out of Nowhere"],"prog":"Out of Nowhere","participants":10,"returning":null,"kind":"film","exhibit":false},{"n":"62","date":"2026-11-21","end":null,"venue":"Howard's Bookstore","place":"Torrington","region":"Torrington CT","audience":"Community","films":["Other programs"],"prog":"Unrecorded program","participants":5,"returning":null,"kind":"other","exhibit":false}],"films":{"Notes on Blindness":{"year":"2016","director":"Arnaud Colinart, Amaury La Burthe, Peter Middleton, James Spinney","studio":"Ex Nihilo (Agat Films), ARTE France, AudioGaming; co-production Archer's Mark","link":"https://en.unifrance.org/movie/43151/notes-on-blindness-into-darkness","note":"VR piece \"Into Darkness\" (about 7 min), companion to the feature doc by Middleton and Spinney."},"Accused #2 (Walter Sisulu)":{"year":"2018","director":"Nicolas Champeaux, Gilles Porte","studio":"La Générale de Production, ARTE France","link":"https://en.unifrance.org/movie/47720/accused-2-walter-sisulu","note":"Full title: Accused #2: Walter Sisulu."},"Flow":{"year":"2023","director":"Adriaan Lokman","studio":"Valk Productions, Lucid Realities (distribution: Unframed Collection)","link":"https://www.labiennale.org/en/cinema/2023/venice-immersive/flow","note":"VR version of Lokman's 2019 short film."},"Blind Vaysha":{"year":"2017","director":"Theodore Ushev","studio":"National Film Board of Canada, with ARTE France","link":"https://collection.nfb.ca/interactive/blind_vaysha_vr","note":"VR version of the Oscar-nominated 2016 short."},"Insider-Outsider":{"year":"2025","director":"Philippe Cohen Solal","studio":"Lucid Realities, Science & Mélodie","link":"https://lucidrealities.studio/index.php/en/portfolio/insider-outsider/","note":"Interactive VR musical piece inspired by Henry Darger."},"Namoo":{"year":"2021","director":"Erick Oh","studio":"Baobab Studios","link":"https://www.meta.com/blog/explore-the-tree-of-life-in-namoo-an-interview-with-oscar-nominated-filmmaker-erick-oh/","note":"Premiered at Sundance 2021."},"Child of Empire":{"year":"2022","director":"Erfan Saadati (co-creators: Sparsh Ahuja, Omi Zola Gupta, Stephen Stephenson)","studio":"Project Dastaan","link":"https://docubase.mit.edu/project/child-of-empire","note":"World premiere Sundance 2022. Some listings give 2021 as the production year."},"All I Know About Teacher Li":{"year":"2024","director":"Zhuzmo","studio":"Zhuzmo","link":"https://www.labiennale.org/en/cinema/2024/venice-immersive/all-i-know-about-teacher-li","note":"Director is credited as Zhuzmo and asked to stay anonymous (Voices of VR, 2024)."},"From the Main Square":{"year":"2022","director":"Pedro Harres","studio":"Filmuniversität Babelsberg KONRAD WOLF (producer Lorena Junghans)","link":"https://www.labiennale.org/en/cinema/2022/venice-immersive/main-square","note":"Venice Immersive 2022 Grand Jury Prize."},"Oto's Planet":{"year":"2024","director":"Gwenaël François","studio":"Skill Lab (Luxembourg), Dpt. (Canada), Small Creative (France)","link":"https://filmfund.lu/film-catalogue/films/oto-s-planet","note":"Interactive 6DoF VR, about 28 min."},"Kteer Tayeb":{"year":"2021","director":"Samia Khalaf","studio":"Independent; made in Quill for Meta Quest","link":"https://tech.facebook.com/reality-labs/2021/6/quill-corner-with-samia-khalaf/","note":"Creator spells it \"Kteer Tayyeb.\" Year is from Meta's June 2021 feature. Danielle hasn't shown it yet and wants to."},"We Live Here":{"year":"2020","director":"Rose Troche","studio":"Meta VR for Good (producer Emily Cooper)","link":"https://www.meta.com/blog/vr-for-good-we-live-here-puts-a-face-on-homelessness/","note":"Premiered at Venice 2020."},"Tales of Soda Island":{"year":"2020","director":"Simone \"Funi\" Fougnier, Dan Franke","studio":"Studio Syro","link":"https://www.meta.com/blog/new-quill-series-tales-from-soda-island-presents-the-multiverse-bakery-a-galaxy-spanning-vr-short-film/","note":"A series. Confirmed: Chapter 1, The Multiverse Bakery (2020)."},"Less Than 5 Grams of Saffron":{"year":"2025","director":"Négar Motevalymeidanshah","studio":"Ten2Ten Films; co-production Atlas V","link":"https://www.labiennale.org/en/cinema/2025/venice-immersive/less-5gr-saffron","note":"About 7 min."},"Geogroove":{"year":"2026","director":"Lauren Schroeder","studio":"Virtual Pebble","link":"https://virtualpebble.itch.io/gg","note":"Experimental / mixed reality: an abstract instrument for Quest."},"The Key":{"year":"2019","director":"Céline Tricart","studio":"Lucid Dreams Productions, with Oculus VR for Good Creators Lab","link":"https://tribecafilm.com/films/key-2019","note":"Tribeca Storyscapes Award 2019."},"The Art of Change":{"year":"2024","director":"Simone Fougnier, Vincent Rooijers","studio":"Funilab, Studio Syro, Droeloe, Broken Levee","link":"https://www.labiennale.org/en/cinema/2024/venice-immersive/art-change","note":"Immersive music piece for Droeloe's album."},"Cycle":{"year":"2025","director":"Matunda Groenendijk, Amit Palgi","studio":"Not listed in what I found","link":"https://sxswlondon.com/film-and-tv/xr-cycle-a355b317","note":"Confirmed: Amit Palgi's piece (2025 Dutch dance VR)."},"Goliath: Playing with Reality":{"year":"2021","director":"Barry Gene Murphy, May Abdalla","studio":"Anagram, with Floréal Films","link":"https://www.labiennale.org/en/cinema/2021/venice-vr-expanded/goliath-playing-reality","note":"Event 55 uses the full title. I treated \"Goliath\" as the same piece."},"Gravity Sketch":{"year":"","director":"","studio":"Gravity Sketch (company)","link":"https://www.gravitysketch.com/","note":"Experimental / tool: a VR 3D design tool. Year and credits not researched."},"Diatribes":{"year":"2024","director":"Veronica Graham","studio":"Most Ancient","link":"https://fivars.net/stories/storiesfall2024/diatribes","note":"Climate-change VR narrative. Premiered at FIVARS in fall 2024."},"Cloud Breath":{"year":"2022","director":"Victoria Scott","studio":"Imaginary Objects LLC","link":"https://www.meta.com/experiences/pcvr/cloud-breath/1914762681972424/","note":"Experimental: a 13-min seated VR breathing meditation. Score by Greg Fox. Director confirmed."},"FREE":{"year":"2026","director":"Nancy Baker Cahill","studio":"4th Wall","link":"https://grayarea.org/press/nancy-baker-cahill-free-augmented-reality-alcatraz/","note":"AR: a participatory artwork at Alcatraz, Jul 4 to Nov 4, 2026."},"We The People":{"year":"2022","director":"Nimrod Shanit","studio":"Blimey","link":"https://blimey.tv/work/we-the-people","note":"First-person XR experience on defining moments in American democracy, commissioned by the US Department of State."},"Empathy Creatures":{"year":"2025","director":"Mélodie Mousset","studio":"Swiss production; developed at the Mobiliar Lab for Analytics (producer not captured)","link":"https://www.labiennale.org/en/node/17677","note":"Interactive piece with an AI-driven bird."},"Necuhtli":{"year":"","director":"Maria de Jesus Mayo and Dr. Patty Ramirez","studio":"","link":"https://mariadejesusmayo.com/necuhtli/","note":"Immersive documentary in progress (ancestral memory, ecofeminism and Indigenous histories through four female voices)."},"Out of Nowhere":{"year":"2025","director":"Kris Hofmann, Andreas Wuthe","studio":"Hofmann Studio, spec.Studio (development: Animate Projects)","link":"https://animateprojects.org/portfolio/out-of-nowhere/","note":"Premiered at Venice Immersive 2025."}}};
+(function(){
+  const EV = DATA.events, FILMS = DATA.films;
+  const PLACES = [
+    {k:'New Haven CT', c:'g-nh', v:'--s1', short:'New Haven'},
+    {k:'Torrington CT', c:'g-to', v:'--s2', short:'Torrington'},
+    {k:'San Francisco', c:'g-sf', v:'--s3', short:'San Francisco'},
+    {k:'Elsewhere', c:'g-el', v:'--s4', short:'Elsewhere'}
+  ];
+  const PMAP = Object.fromEntries(PLACES.map(p=>[p.k,p]));
+  const $ = id => document.getElementById(id);
+  const S = {places:new Set(), aud:'', film:'', venue:'', size:'', rows:'film', color:'place', sel:null, sort:{film:['n',-1], ven:['n',-1]}};
+  const fmtD = iso => new Date(iso+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const t = iso => new Date(iso+'T12:00:00').getTime();
+  const safeUrl = u => /^https?:\/\//i.test(u||'') ? u : '';
+  const el = (tag,attrs,kids)=>{const e=document.createElement(tag);if(attrs)for(const k in attrs){if(k==='text')e.textContent=attrs[k];else if(k==='class')e.className=attrs[k];else e.setAttribute(k,attrs[k]);}(kids||[]).forEach(c=>e.appendChild(typeof c==='string'?document.createTextNode(c):c));return e;};
+  const svgEl = (tag,attrs)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;};
+  const sizeBin = p => p==null?'':(p<=8?'Up to 8 people':(p<=14?'9 to 14 people':'15 or more'));
+  const SIZES = ['Up to 8 people','9 to 14 people','15 or more'];
+  const isFilm = f => f!=='Other programs';
+
+  function filtered(){
+    return EV.filter(e=>
+      (!S.places.size || S.places.has(e.region)) &&
+      (!S.aud || e.audience===S.aud) &&
+      (!S.film || e.films.includes(S.film)) &&
+      (!S.venue || e.venue===S.venue) &&
+      (!S.size || sizeBin(e.participants)===S.size));
+  }
+  function pool(es){
+    const w=es.filter(e=>e.returning!=null && e.participants);
+    const p=w.reduce((a,e)=>a+e.participants,0), r=w.reduce((a,e)=>a+e.returning,0);
+    return {n:w.length, people:p, ret:r, rate:p?r/p:null};
+  }
+  const att = es => es.reduce((a,e)=>a+(e.participants||0),0);
+  const pct = x => x==null?'n/a':Math.round(x*100)+'%';
+  function bucket(e){
+    if(e.returning==null||!e.participants) return 'bna';
+    const r=e.returning/e.participants;
+    if(r===0) return 'bn0'; if(r<.1) return 'b1'; if(r<.25) return 'b2'; if(r<.5) return 'b3'; return 'b4';
+  }
+  function popFilter(){
+    const base=EV;
+    const uniq = f => [...new Set(base.map(f))].sort();
+    const audSel=$('fAud'), filmSel=$('fFilm'), venSel=$('fVenue');
+    const fill=(sel,vals,all,cur)=>{sel.textContent='';sel.appendChild(el('option',{value:'',text:all}));vals.forEach(v=>sel.appendChild(el('option',{value:v,text:v})));sel.value=cur;};
+    fill(audSel,uniq(e=>e.audience),'All audiences',S.aud);
+    const fl=[...new Set(base.flatMap(e=>e.films))].sort((a,b)=>a.localeCompare(b));
+    fill(filmSel,fl,'All films',S.film);
+    fill(venSel,uniq(e=>e.venue),'All venues',S.venue);
+    const box=$('placeChips'); box.textContent='';
+    PLACES.forEach(p=>{
+      const b=el('button',{class:'chip',type:'button','aria-pressed':S.places.has(p.k)?'true':'false'});
+      const sw=el('span',{class:'sw'}); sw.style.background='var('+p.v+')';
+      b.appendChild(sw); b.appendChild(document.createTextNode(p.short));
+      b.onclick=()=>{S.places.has(p.k)?S.places.delete(p.k):S.places.add(p.k); render();};
+      box.appendChild(b);
+    });
+  }
+
+  function tiles(es){
+    const a=att(es), p=pool(es);
+    const items=[[es.length,'screenings'],[a,'attendances logged'],[es.length?(a/es.length).toFixed(1):'0','average per screening'],[p.rate==null?'n/a':pct(p.rate),'return rate, where counted ('+p.n+' screenings)']];
+    const box=$('tiles'); box.textContent='';
+    items.forEach(([v,l])=>box.appendChild(el('div',{class:'tile'},[el('b',{text:String(v)}),el('span',{text:l})])));
+  }
+
+  /* ---------- timeline ---------- */
+  function rowsFor(es){
+    const m=new Map();
+    const add=(key,e)=>{if(!m.has(key))m.set(key,[]);m.get(key).push(e);};
+    es.forEach(e=>{
+      if(S.rows==='film') e.films.forEach(f=>add(f,e));
+      else if(S.rows==='venue') add(e.venue,e);
+      else add(e.region,e);
+    });
+    let keys=[...m.keys()];
+    if(S.rows==='place') keys.sort((a,b)=>PLACES.findIndex(p=>p.k===a)-PLACES.findIndex(p=>p.k===b));
+    else keys.sort((a,b)=>{ if(a==='Other programs')return 1; if(b==='Other programs')return -1; return m.get(a)[0].date.localeCompare(m.get(b)[0].date);});
+    return keys.map(k=>({key:k,events:m.get(k).slice().sort((a,b)=>a.date.localeCompare(b.date))}));
+  }
+  const rad = e => e.participants==null?4.5:Math.min(15,4+Math.sqrt(e.participants)*1.35);
+  function drawTimeline(es){
+    const lab=$('tlLabels'), svg=$('tlSvg'); lab.textContent=''; svg.textContent='';
+    $('tl').className='tl mode-'+S.color;
+    if(!es.length){ lab.style.height='60px'; svg.setAttribute('width',300); svg.setAttribute('height',60); const tx=svgEl('text',{x:8,y:30}); tx.textContent='No screenings match these filters.'; svg.appendChild(tx); return; }
+    const rows=rowsFor(es);
+    const labW=parseFloat(getComputedStyle($('tl')).getPropertyValue('--lab'))||176;
+    const avail=Math.max(560, $('mapRow').clientWidth - ($('mapRow').clientWidth>=900?336:0) - labW);
+    const t0=t('2025-06-25'), t1=t('2026-12-01');
+    const x = iso => 12 + (t(iso)-t0)/(t1-t0)*(avail-24);
+    const AX=34; let y=AX; const placed=[];
+    rows.forEach(r=>{
+      const lv=[]; // last right-edge per level
+      r.events.forEach(e=>{
+        const cx=x(e.date), rr=rad(e); let L=0;
+        while(lv[L]!==undefined && cx-rr < lv[L]+2) L++;
+        lv[L]=cx+rr; e._lv=L; e._cx=cx; e._r=rr;
+      });
+      const levels=Math.max(1,lv.length);
+      const h=Math.max(34, levels*26+12);
+      r.y=y; r.h=h; r.levels=levels; y+=h;
+    });
+    const H=y+4;
+    svg.setAttribute('width',avail); svg.setAttribute('height',H); svg.setAttribute('viewBox','0 0 '+avail+' '+H);
+    lab.style.height=H+'px';
+    // month grid
+    const step=(avail-24)/17.2, every=step>=34?1:2; let mi=0;
+    for(let d=new Date(2025,6,1); d<=new Date(2026,11,1); d.setMonth(d.getMonth()+1), mi++){
+      const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01', gx=x(iso);
+      svg.appendChild(svgEl('line',{x1:gx,x2:gx,y1:AX-6,y2:H,class:'grid-line'}));
+      if(mi%every===0 && gx<avail-26){
+        const tx=svgEl('text',{x:gx+3,y:AX-10}); tx.textContent=d.toLocaleDateString('en-US',{month:'short'}); svg.appendChild(tx);
+      }
+      if(d.getMonth()===0 || mi===0){
+        const ty=svgEl('text',{x:gx+3,y:10,style:'font-weight:600'}); ty.textContent=String(d.getFullYear()); svg.appendChild(ty);
+      }
+    }
+    rows.forEach((r,i)=>{
+      if(i%2===0) svg.appendChild(svgEl('rect',{x:0,y:r.y,width:avail,height:r.h,class:'rowband'}));
+      // labels
+      const L=el('div',{class:'tl-label'}); L.style.top=r.y+'px'; L.style.height=r.h+'px';
+      const nm=S.rows==='place'?(PMAP[r.key]?PMAP[r.key].short:r.key):r.key;
+      const b=el('button',{type:'button',title:nm,text:nm});
+      b.onclick=()=>{ if(S.rows==='film') S.film=(r.key==='Other programs')?'':r.key; else if(S.rows==='venue') S.venue=r.key; else {S.places=new Set([r.key]);} render(); };
+      L.appendChild(b); L.appendChild(el('span',{class:'n',text:String(r.events.length)}));
+      if(S.rows==='film' && FILMS[r.key] && safeUrl(FILMS[r.key].link)){
+        const a=el('a',{href:FILMS[r.key].link,target:'_blank',rel:'noopener','aria-label':'Open page for '+r.key,title:'Open film page',text:'↗'}); L.appendChild(a);
+      }
+      lab.appendChild(L);
+      r.events.forEach(e=>{
+        const cy=r.y + 6 + 13 + e._lv*26 + (r.h-12-r.levels*26)/2;
+        const cls='dot '+(PMAP[e.region]?PMAP[e.region].c:'g-el')+' '+bucket(e)+(S.sel===e?' sel':'');
+        const c=svgEl('circle',{cx:e._cx,cy:cy,r:e._r,class:cls,tabindex:'0',role:'button','aria-label':fmtD(e.date)+', '+e.venue+', '+(e.participants==null?'no attendance logged':e.participants+' people')});
+        c.addEventListener('mousemove',ev=>showTip(ev,e,r.key));
+        c.addEventListener('mouseleave',hideTip);
+        c.addEventListener('focus',()=>{const bb=c.getBoundingClientRect();showTip({clientX:bb.right,clientY:bb.top},e,r.key)});
+        c.addEventListener('blur',hideTip);
+        c.addEventListener('click',()=>{S.sel=e;render();});
+        c.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();S.sel=e;render();}});
+        svg.appendChild(c);
+      });
+    });
+    // legend
+    const lg=$('legend'); lg.textContent='';
+    if(S.color==='place'){
+      PLACES.forEach(p=>{const s=el('span',{},[]);const i=el('i');i.style.background='var('+p.v+')';s.appendChild(i);s.appendChild(document.createTextNode(p.short));lg.appendChild(s);});
+    } else {
+      [['b0','0% returned','--r0'],['b1','under 10%','--r1'],['b2','10 to 24%','--r2'],['b3','25 to 49%','--r3'],['b4','50% or more','--r4']].forEach(([k,l,v],idx)=>{
+        const s=el('span');const i=el('i');i.style.background='var('+v+')';if(idx===0)i.style.border='1px solid var(--muted)';s.appendChild(i);s.appendChild(document.createTextNode(l));lg.appendChild(s);});
+      const s=el('span');s.appendChild(el('i',{class:'hollow'}));s.appendChild(document.createTextNode('no return count logged'));lg.appendChild(s);
+    }
+    lg.appendChild(el('span',{text:'Dot size = people in the room'}));
+  }
+  function tipHTML(e,rowKey){
+    const tip=$('tip'); tip.textContent='';
+    const title=e.kind==='film'?e.films.join(' + '):e.prog;
+    tip.appendChild(el('b',{text:title}));
+    const line=(txt,cls)=>tip.appendChild(el('div',{class:cls||'',text:txt}));
+    line(fmtD(e.date)+(e.end?' to '+fmtD(e.end)+' (exhibition run)':''),'mut');
+    line(e.venue+(e.place?', '+e.place:''));
+    line(e.audience+' · '+(e.participants==null?'attendance not logged':e.participants+' people'));
+    line(e.returning==null?'Return count not logged':e.returning+' returning ('+pct(e.participants?e.returning/e.participants:null)+')');
+  }
+  function showTip(ev,e,rk){
+    tipHTML(e,rk); const tip=$('tip'); tip.style.display='block';
+    const w=tip.offsetWidth,h=tip.offsetHeight; let x=ev.clientX+14,y=ev.clientY+14;
+    if(x+w>window.innerWidth-8)x=ev.clientX-w-14; if(y+h>window.innerHeight-8)y=ev.clientY-h-14;
+    tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';
+  }
+  function hideTip(){$('tip').style.display='none';}
+
+  function drawDetail(){
+    const d=$('detail'); d.textContent='';
+    const e=S.sel;
+    if(!e){ d.appendChild(el('h3',{text:'Pick a dot'})); d.appendChild(el('p',{class:'empty',text:'Click any screening to see the room, the crowd and the film, with a link to the film page.'})); return; }
+    d.appendChild(el('h3',{text:e.kind==='film'?e.films.join(' + '):e.prog}));
+    d.appendChild(el('div',{class:'hint',text:fmtD(e.date)+(e.end?' to '+fmtD(e.end):'')}));
+    const dl=el('dl');
+    const row=(k,v)=>{dl.appendChild(el('dt',{text:k}));dl.appendChild(el('dd',{text:v}));};
+    row('Venue',e.venue); row('Place',e.place||PMAP[e.region].short); row('Audience',e.audience);
+    row('In the room',e.participants==null?'not logged':String(e.participants));
+    row('Returning',e.returning==null?'not logged':e.returning+(e.participants?' ('+pct(e.returning/e.participants)+')':''));
+    row('Event no.','#'+e.n+(e.exhibit?' (exhibition run)':''));
+    d.appendChild(dl);
+    e.films.filter(f=>FILMS[f]).forEach(f=>{
+      const F=FILMS[f]; const c=el('div',{class:'filmcard'});
+      c.appendChild(el('b',{text:f+(F.year?' ('+F.year+')':'')}));
+      if(F.director) c.appendChild(el('div',{text:'Directed by '+F.director}));
+      if(F.studio) c.appendChild(el('div',{class:'hint',text:F.studio}));
+      const u=safeUrl(F.link);
+      if(u){ const p=el('div'); p.appendChild(el('a',{href:u,target:'_blank',rel:'noopener',text:'Open film page ↗'})); c.appendChild(p);} else c.appendChild(el('div',{class:'hint',text:'No film page added yet.'}));
+      d.appendChild(c);
+    });
+    const x=el('button',{class:'btn',type:'button',text:'Clear selection'}); x.onclick=()=>{S.sel=null;render();}; d.appendChild(x);
+  }
+
+  /* ---------- patterns ---------- */
+  function groupBars(es,keyf,order,applyf,isOn){
+    const g=new Map(); es.forEach(e=>{const k=keyf(e); if(k==null)return; if(!g.has(k))g.set(k,[]); g.get(k).push(e);});
+    let keys=order||[...g.keys()];
+    const stats=keys.filter(k=>g.has(k)).map(k=>({k,n:g.get(k).length,p:pool(g.get(k))}));
+    const mx=Math.max(.3,...stats.map(s=>s.p.rate||0));
+    return stats.map(s=>{
+      const b=el('button',{class:'barrow',type:'button','aria-pressed':isOn(s.k)?'true':'false',title:s.p.n+' of '+s.n+' screenings had a return count'});
+      b.appendChild(el('span',{class:'nm',text:s.k}));
+      const tr=el('span',{class:'track'}); const f=el('span',{class:'fill'}); f.style.display='block'; f.style.width=(s.p.rate==null?0:Math.max(2,s.p.rate/mx*100))+'%'; tr.appendChild(f); b.appendChild(tr);
+      const pc=el('span',{class:'pct'}); pc.appendChild(document.createTextNode(pct(s.p.rate))); pc.appendChild(el('small',{text:' n='+s.n})); b.appendChild(pc);
+      b.onclick=()=>{applyf(s.k);render();};
+      return b;
+    });
+  }
+  function drawPatterns(es){
+    const ins=$('insights'); ins.textContent='';
+    const small=pool(es.filter(e=>e.participants!=null&&e.participants<=8)), big=pool(es.filter(e=>e.participants>=15));
+    const add=(txt,sm)=>{const d=el('div',{class:'ins',text:txt}); if(sm)d.appendChild(el('small',{text:sm})); ins.appendChild(d);};
+    if(small.rate!=null&&big.rate!=null) add('Rooms of 8 or fewer: '+pct(small.rate)+' returned. Rooms of 15 or more: '+pct(big.rate)+'.', small.n+' small and '+big.n+' large screenings with counts');
+    const vg=new Map(); es.forEach(e=>{if(!vg.has(e.venue))vg.set(e.venue,[]);vg.get(e.venue).push(e);});
+    const best=[...vg.entries()].map(([k,v])=>({k,p:pool(v)})).filter(x=>x.p.n>=3&&x.p.rate!=null).sort((a,b)=>b.p.rate-a.p.rate)[0];
+    if(best) add('Highest return rate with 3 or more counted screenings: '+best.k+' at '+pct(best.p.rate)+'.', best.p.n+' screenings, '+best.p.ret+' of '+best.p.people+' people came back');
+    const missing=es.filter(e=>e.returning==null||!e.participants).length;
+    if(es.length) add(missing+' of '+es.length+' screenings have no return count logged.','Those show as hollow dots in return-rate color mode');
+    const bars=$('bars'); bars.textContent='';
+    const grp=(title,nodes)=>{const g=el('div',{class:'bar-group'});g.appendChild(el('h3',{text:title}));nodes.forEach(n=>g.appendChild(n));bars.appendChild(g);};
+    grp('Return rate by place',groupBars(es,e=>PMAP[e.region].short,PLACES.map(p=>p.short),k=>{const p=PLACES.find(x=>x.short===k);S.places=(S.places.size===1&&S.places.has(p.k))?new Set():new Set([p.k]);},k=>S.places.size===1&&S.places.has(PLACES.find(x=>x.short===k).k)));
+    const audOrder=[...new Set(EV.map(e=>e.audience))];
+    grp('Return rate by audience',groupBars(es,e=>e.audience,audOrder,k=>{S.aud=S.aud===k?'':k;},k=>S.aud===k));
+    grp('Return rate by room size',groupBars(es,e=>sizeBin(e.participants)||null,SIZES,k=>{S.size=S.size===k?'':k;},k=>S.size===k));
+  }
+
+  /* ---------- tables ---------- */
+  function sortRows(rows,key,dir){return rows.slice().sort((a,b)=>{const x=a[key],y=b[key];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (typeof x==='string'?x.localeCompare(y):x-y)*dir;});}
+  function head(tbl,cols,sortKey,sortState){
+    const thead=el('thead'),tr=el('tr');
+    cols.forEach(c=>{const th=el('th',{class:c.num?'num':'',scope:'col'}); if(c.k){const b=el('button',{type:'button',text:c.l+(sortState[0]===c.k?(sortState[1]>0?' ▲':' ▼'):'')}); b.onclick=()=>{sortState[1]=sortState[0]===c.k?-sortState[1]:(c.num?-1:1);sortState[0]=c.k;render();}; th.appendChild(b);} else th.textContent=c.l; tr.appendChild(th);});
+    thead.appendChild(tr); tbl.appendChild(thead);
+  }
+  function drawFilms(es){
+    const g=new Map(); es.forEach(e=>e.films.forEach(f=>{if(!isFilm(f))return; if(!g.has(f))g.set(f,[]); g[f]; g.get(f).push(e);}));
+    const rows=[...g.entries()].map(([f,v])=>{const p=pool(v);const F=FILMS[f]||{};return {f,year:F.year?+F.year:null,dir:F.director||'',n:v.length,att:att(v),rate:p.rate,link:safeUrl(F.link),regs:[...new Set(v.map(e=>e.region))],studio:F.studio||''};});
+    const [k,d]=S.sort.film; const sorted=sortRows(rows,k==='f'?'f':k,d);
+    const tbl=$('filmTbl'); tbl.textContent='';
+    head(tbl,[{k:'f',l:'Film'},{k:'year',l:'Year',num:1},{k:'dir',l:'Director'},{k:'n',l:'Screenings',num:1},{k:'att',l:'Attendance',num:1},{k:'rate',l:'Return rate',num:1},{l:'Where'}],'f',S.sort.film);
+    const tb=el('tbody');
+    sorted.forEach(r=>{
+      const tr=el('tr',{class:S.film===r.f?'on':''}); tr.tabIndex=0;
+      const td0=el('td'); if(r.link){td0.appendChild(el('a',{href:r.link,target:'_blank',rel:'noopener',text:r.f+' ↗'}));td0.lastChild.onclick=ev=>ev.stopPropagation();} else td0.appendChild(document.createTextNode(r.f)); if(!r.link) td0.appendChild(el('div',{class:'hint',text:'no link yet'}));
+      tr.appendChild(td0); tr.appendChild(el('td',{class:'num',text:r.year||''})); tr.appendChild(el('td',{text:r.dir||'not identified yet'}));
+      tr.appendChild(el('td',{class:'num',text:String(r.n)})); tr.appendChild(el('td',{class:'num',text:String(r.att)})); tr.appendChild(el('td',{class:'num',text:pct(r.rate)}));
+      const tw=el('td'); PLACES.filter(p=>r.regs.includes(p.k)).forEach(p=>{const s=el('span',{class:'pill',title:p.short});s.style.background='var('+p.v+')';tw.appendChild(s);}); tr.appendChild(tw);
+      const act=()=>{S.film=S.film===r.f?'':r.f;render();};
+      tr.onclick=act; tr.onkeydown=ev=>{if(ev.key==='Enter')act();};
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+  }
+  function drawVenues(es){
+    const g=new Map(); es.forEach(e=>{if(!g.has(e.venue))g.set(e.venue,[]);g.get(e.venue).push(e);});
+    const rows=[...g.entries()].map(([v,es2])=>{const p=pool(es2);return {v,reg:es2[0].region,n:es2.length,att:att(es2),avg:att(es2)/es2.length,rate:p.rate,first:es2.map(e=>e.date).sort()[0]};});
+    const [k,d]=S.sort.ven; const sorted=sortRows(rows,k,d);
+    const tbl=$('venTbl'); tbl.textContent='';
+    head(tbl,[{k:'v',l:'Venue'},{k:'reg',l:'Place'},{k:'n',l:'Screenings',num:1},{k:'att',l:'Attendance',num:1},{k:'avg',l:'Average',num:1},{k:'rate',l:'Return rate',num:1},{k:'first',l:'First screening'}],'v',S.sort.ven);
+    const tb=el('tbody');
+    sorted.forEach(r=>{
+      const tr=el('tr',{class:S.venue===r.v?'on':''}); tr.tabIndex=0;
+      tr.appendChild(el('td',{text:r.v}));
+      const tp=el('td'); const s=el('span',{class:'pill'}); s.style.background='var('+PMAP[r.reg].v+')'; tp.appendChild(s); tp.appendChild(document.createTextNode(PMAP[r.reg].short)); tr.appendChild(tp);
+      tr.appendChild(el('td',{class:'num',text:String(r.n)})); tr.appendChild(el('td',{class:'num',text:String(r.att)})); tr.appendChild(el('td',{class:'num',text:r.avg.toFixed(1)})); tr.appendChild(el('td',{class:'num',text:pct(r.rate)})); tr.appendChild(el('td',{text:fmtD(r.first)}));
+      const act=()=>{S.venue=S.venue===r.v?'':r.v;render();};
+      tr.onclick=act; tr.onkeydown=ev=>{if(ev.key==='Enter')act();};
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+  }
+
+  function render(){
+    popFilter();
+    const es=filtered();
+    if(S.sel && !es.includes(S.sel)) S.sel=null;
+    const nf=new Set(es.flatMap(e=>e.films).filter(isFilm)).size, nv=new Set(es.map(e=>e.venue)).size;
+    $('subline').textContent=es.length+' screenings of '+nf+' films across '+nv+' venues, '+(es.length?fmtD(es.map(e=>e.date).sort()[0])+' to '+fmtD(es.map(e=>e.end||e.date).sort().slice(-1)[0]):'')+'. Source: your Event Schedule and Film Catalog tabs.';
+    document.querySelectorAll('#rowSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.rows?'true':'false'));
+    document.querySelectorAll('#colSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.color?'true':'false'));
+    tiles(es); drawTimeline(es); drawDetail(); drawPatterns(es); drawFilms(es); drawVenues(es);
+    $('foot').textContent='Only completed gatherings are plotted. Attendance is people logged per gathering, so a returning person counts again. Place is grouped as New Haven, Torrington, San Francisco and everything else (Boston area, Providence, NYC, Brooklyn, Wales, Alabama). Return rates only use gatherings with a return count.';
+  }
+  $('fAud').onchange=e=>{S.aud=e.target.value;render();};
+  $('fFilm').onchange=e=>{S.film=e.target.value;render();};
+  $('fVenue').onchange=e=>{S.venue=e.target.value;render();};
+  $('reset').onclick=()=>{S.places=new Set();S.aud='';S.film='';S.venue='';S.size='';S.sel=null;render();};
+  document.querySelectorAll('#rowSeg button').forEach(b=>b.onclick=()=>{S.rows=b.dataset.v;render();});
+  document.querySelectorAll('#colSeg button').forEach(b=>b.onclick=()=>{S.color=b.dataset.v;render();});
+  let rt; window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(render,120);});
+  render();
+})();
+</script>
+</body>
+</html>
